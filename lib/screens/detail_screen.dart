@@ -39,7 +39,7 @@ class _DetailScreenState extends State<DetailScreen> {
         title: Text(
           widget.title,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 20,
           ),
         ),
         backgroundColor: Colors.white,
