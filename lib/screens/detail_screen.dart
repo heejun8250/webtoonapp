@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webtoonclone/models/webtoon_detail_model.dart';
 import 'package:webtoonclone/models/webtoon_episode_model.dart';
@@ -24,12 +25,56 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   late Future<WebtoonDetailModel> webtoon;
   late Future<List<WebtoonEpisodeModel>> episodes;
+  late SharedPreferences prefs;
+  bool isLiked = false;
+
+  Future initPrefs() async {
+    // 휴대폰 저장소와 연결
+    prefs = await SharedPreferences.getInstance();
+    // 휴대폰 저장소에 저장된 likedToons를 가져와 변수에 저장
+    final likedToons = prefs.getStringList('likedToons');
+    // likedToons에 저장된 값이 있는지 확인
+    if (likedToons != null) {
+      // likedToons에 해당 id값이 포함되 있으면 isLiked를 true로 변경
+      if (likedToons.contains(widget.id) == true) {
+        setState(() {
+          isLiked = true;
+        });
+      }
+      // likedToons가 null이면 휴대폰 저장소에 'likedToons'이라는 key로 []를 저장
+    } else {
+      await prefs.setStringList('likedToons', []);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     webtoon = ApiService.getToonById(widget.id);
     episodes = ApiService.getLatestEpisodesById(widget.id);
+    // 앱이 시작할 때 intiPrefs 함수 실행
+    initPrefs();
+  }
+
+  onHeartTap() async {
+    // 휴대폰 저장소에 저장된 likedToons를 가져와 변수에 저장
+    final likedToons = prefs.getStringList('likedToons');
+
+    // likedToons가 null이 아닐 때
+    if (likedToons != null) {
+      // isLiked가 true면 해당 id값을 제거
+      if (isLiked) {
+        likedToons.remove(widget.id);
+        // false면 해당 id값을 추가
+      } else {
+        likedToons.add(widget.id);
+      }
+      // 휴대폰 저장소에 'likedToons'이라는 key로 likedToons 리스트를 저장
+      await prefs.setStringList('likedToons', likedToons);
+      setState(() {
+        isLiked = !isLiked;
+      });
+    }
   }
 
   @override
@@ -48,6 +93,16 @@ class _DetailScreenState extends State<DetailScreen> {
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black,
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              onHeartTap();
+            },
+            icon: Icon(
+              isLiked ? Icons.favorite : Icons.favorite_outline,
+            ),
+          )
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
